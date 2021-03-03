@@ -2,110 +2,101 @@ import threading
 import RPi.GPIO as GPIO
 import time
 
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
-#LED_PIN = 18 dimming with PWM
-#LED_PIN = 13 blinking
-#LED_PIN = 23 blinking
+class LEDThread (threading.Thread):
 
-class myThread (threading.Thread):
-    def __init__(self, LED_PIN, time_on, time_off):
+    def __init__(self, loop_ct, LED_PIN, time_on, time_off):
         threading.Thread.__init__(self)
+        self.loop_ct = loop_ct
         self.LED_PIN = LED_PIN
         self.time_on = time_on
         self.time_off = time_off
-        ###ghp### added
         self.runit = True
-    
-    ###ghp### added    
+        GPIO.setup(self.LED_PIN, GPIO.OUT, initial=GPIO.LOW) 
+       
     def stop(self):
         self.runit = False
         
     def run(self):
-        print "Starting LED number" + str(self.LED_PIN)
-        # Initial state for LEDs:
-        ###ghp###: changed: set mode only once
-        #GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
+        print ("Starting LED number" + str(self.LED_PIN))
         
-        #GPIO.output(self.LED_PIN, GPIO.LOW)
         count = 0
-        ###ghp### removed exception handling; listen to runit-flag
-        #try:
-        while (count < 50 and self.runit):
-            GPIO.setup(self.LED_PIN, GPIO.OUT) # LED pin set as output
+
+        while (count < self.loop_ct and self.runit):
             GPIO.output(self.LED_PIN, GPIO.LOW)
             time.sleep(self.time_off)
-            GPIO.setup(self.LED_PIN, GPIO.OUT) # LED pin set as output
+
             GPIO.output(self.LED_PIN, GPIO.HIGH)
             time.sleep(self.time_on)
             count = count + 1
-            ###ghp###: changed: set mode only once
-            #GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
-            
-            GPIO.setup(self.LED_PIN, GPIO.OUT) # LED pin set as output
-            GPIO.output(self.LED_PIN, GPIO.LOW)
-            ###ghp###: identation unclear, do this in main code only
-            #GPIO.cleanup()
-            #GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
 
-        #except KeyboardInterrupt: # IF CTRL + C is pressed, exit cleanly:
-        #    print "Manual intervention for some reason"
+        GPIO.output(self.LED_PIN, GPIO.LOW)
 
-class myThread1 (threading.Thread):
-    def __init__(self, LED_PIN, STEP_pos, STEP_neg):
+
+class ServoThread (threading.Thread):
+    def __init__(self, GPIO_PIN, degrees_from, degrees_to, degrees_step):
         threading.Thread.__init__(self)
-        self.LED_PIN = LED_PIN
-        self.STEP_pos = STEP_pos
-        self.STEP_neg = STEP_neg
+        self.GPIO_PIN = GPIO_PIN
         
-        ###ghp### added
+        self.degrees_from = degrees_from
+
+        if self.degrees_from < 0 or self.degrees_from > 180:
+            self.degrees_from = 0
+
+        self.degrees_to = degrees_to
+
+        if self.degrees_to > 180 or self.degrees_to < 0:
+            self.degrees_to =  180
+
+        if self.degrees_to - self.degrees_from < 0:
+            self.degrees_from = 0
+            self.degrees_to = 180
+
+        self.degrees_step = degrees_step
+
+        if self.degrees_step > self.degrees_to - self.degrees_from:
+            self.degrees_step = self.degrees_to - self.degrees_from
+
+        if self.degrees_step < 1:
+            self.degrees_step = 1
+
+
         self.runit = True
-    
-    ###ghp### added    
+        GPIO.setup(self.GPIO_PIN, GPIO.OUT, initial=GPIO.LOW)
+        self.pwm_pin = GPIO.PWM(self.GPIO_PIN, 50) #frequency=50Hz
+       
     def stop(self):
         self.runit = False
         
     def run(self):
-        print "Starting dimming LED number" + str(self.LED_PIN)
-        # Initial state for LEDs:
-        
-        ###ghp###: changed: set mode only once
-        #GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
-       
-        GPIO.setup(self.LED_PIN, GPIO.OUT) # LED pin set as output
-        GPIO.output(self.LED_PIN, GPIO.LOW)
-        p = GPIO.PWM(self.LED_PIN, 50) # channel=12 frequency=50Hz
+        print("Starting servo thread on pin #" + str(self.GPIO_PIN))
+        self.pwm_pin.start(0)
+  
+        for degrees in range(self.degrees_from, self.degrees_to, self.degrees_step):
 
-        count = 0
-        p.start(0)
-        ###ghp### removed keyboard exception handline; listen to runit-flag
-        #try:
-        while (count < 6 and self.runit):
-            for dc in range(0, 101, self.STEP_pos):
-                p.ChangeDutyCycle(dc)
-                time.sleep(0.1)
-            for dc in range(100, -1, self.STEP_neg):
-                p.ChangeDutyCycle(dc)
-                time.sleep(0.1)
-            count = count + 1
+            self.set_angle(degrees, self.pwm_pin)
+            time.sleep(1)
 
-        #except KeyboardInterrupt: # IF CTRL + C is pressed, exit cleanly:
-        #    print "Manual intervention for some reason"
-        p.stop()
-        ###ghp###: cleanup only in main code
-        #GPIO.cleanup()
+        self.pwm_pin.ChangeDutyCycle(5)
+        time.sleep(2)
+        self.pwm_pin.stop()
+
+    def set_angle(self, angle, pwm):
+        duty = round(angle / 18 + 2, 2)
+        pwm.ChangeDutyCycle(duty)
 
 # Create new threads
-LED23 = myThread(23,0.1,0.1)
-LED13 = myThread(13,1,1)
-LED18 = myThread1(18,5,-5) # Dimming LED on GPIO 18
+LED23 = LEDThread(20, 23, 0.1, 0.1)
+LED13 = LEDThread(10, 13, 0.5, 0.5)
+LED18 = ServoThread(18, 1, 180, 10) 
 
 # Execute the threads
 LED23.start()
 LED13.start()
 LED18.start()
 
-###ghp### added
 try:
     while True:
         time.sleep(0.1)
@@ -118,4 +109,6 @@ except KeyboardInterrupt:
     LED13.join( )
     LED18.join( )
     
-GPIO.cleanup()    
+GPIO.cleanup()   
+
+print("End")
