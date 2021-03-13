@@ -57,15 +57,15 @@ enable_stepper_board(EnabledState.ENABLED)
 STEP_DELAY = 0.0008 # 0.0005
 #time.sleep(3)
 
-rotate_n(10, STEP_DELAY, Dir.CLOCKWISE)
+rotate_n(10, .0003, Dir.CLOCKWISE)
 time.sleep(.5)
 rotate_n(1, STEP_DELAY, Dir.COUNTER)
 time.sleep(.5)
 rotate_n(1, STEP_DELAY, Dir.CLOCKWISE)
 time.sleep(.5)
-rotate_n(1, STEP_DELAY, Dir.COUNTER)
+rotate_n(.5, STEP_DELAY, Dir.COUNTER)
 time.sleep(.5)
-rotate_n(1, STEP_DELAY, Dir.CLOCKWISE)
+rotate_n(.25, STEP_DELAY, Dir.CLOCKWISE)
 time.sleep(.5)
 rotate_n(10, STEP_DELAY, Dir.COUNTER)
 
