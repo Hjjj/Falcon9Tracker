@@ -1,5 +1,9 @@
-import json 
+import jsonpickle
 from datetime import time, date, datetime
+
+#this uses jsonpickle lib which is great at serializing and deserializing to JSON from native python
+#https://jsonpickle.github.io/
+#https://pynative.com/make-python-class-json-serializable/
 
 #Timeline Data. Space delimited 
 #010121020100 001 002 34.56,23.54
@@ -36,7 +40,7 @@ class Launch:
         self.timeline.append(timeline_event)
 
 
-
+#sample:
 # mission_data = {
 #     "t_minus__zero" : datetime.datetime.now(),
 #     "launch_name" : "RSO 3",
@@ -56,25 +60,28 @@ class Launch:
 #     ]
 # }
 
-#def myconverter(o):
-#    if isinstance(o, datetime.datetime):
-#       return o.__str__()
-
-# convert into JSON:
-#y = json.dumps(mission_data, default = myconverter)
-
-# the result is a JSON string:
-#print(y)
-
 launch = Launch(datetime(year=2020, month=1, day=31, hour=13, minute=14, second=31), "Hal001 Flight", "just a test flight")
 
 #evt = TimelineEvent(time(hour=0, minute=0, second=0), 111, 222, "1,2,3,4", "test event")
 tim = time(hour=0, minute=0, second=0)
 
 launch.timeline_insert(TimelineEvent(tim, 111, 222, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 222, 666, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 333, 333, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 444, 999, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 555, 111, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 666, 333, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 777, 555, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 888, 888, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 999, 111, "1,2,3,4", "test event"))
+launch.timeline_insert(TimelineEvent(tim, 000, 222, "1,2,3,4", "test event"))
 
-y = json.dumps(launch)
 
-# the result is a JSON string:
-print(y)
+launch_pickle_encoded = jsonpickle.encode(launch, unpicklable=True)
+print("Encoded string:")
+print(launch_pickle_encoded)
+
+launch_pickle_decoded = jsonpickle.decode(launch_pickle_encoded)
+print("Decoded string:")
+print("launch.name = " + launch.name + " and launch_pickle_decoded.name= " + launch_pickle_decoded['name'])
 
